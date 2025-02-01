@@ -14,13 +14,24 @@ def calculate_safety_stock(demand_series, lead_time, service_level):
         99: 2.33
     }.get(service_level, 1.65)  # Default to 95% if not found
     
-    # Calculate safety stock
+    # Calculate safety stock and round up to 1 decimal place
     safety_stock = z_score * demand_std * np.sqrt(lead_time)
-    return safety_stock
+    return round(safety_stock, 1)
+
+# Function to calculate future forecast using moving average
+def calculate_moving_average(demand_series, window=3):
+    # Calculate moving average
+    moving_avg = np.convolve(demand_series, np.ones(window)/window, mode='valid')
+    return moving_avg[-1]  # Return the last value as the forecast
 
 # Streamlit app
 def main():
     st.title("Safety Stock Calculator")
+    
+    # Input for lead time and service level (before file uploads)
+    st.sidebar.header("Parameters")
+    lead_time = st.sidebar.number_input("Lead Time (in days)", min_value=1, value=7)
+    service_level = st.sidebar.selectbox("Service Level", [90, 95, 99], index=1)
     
     # Upload historical sales data
     st.sidebar.header("Upload Data")
@@ -32,12 +43,7 @@ def main():
         st.write("### Historical Sales Data")
         st.write(data)
         
-        # Input for lead time and service level
-        lead_time = st.sidebar.number_input("Lead Time (in days)", min_value=1, value=7)
-        service_level = st.sidebar.selectbox("Service Level", [90, 95, 99], index=1)
-        
         # Input for current stock levels
-        st.sidebar.header("Current Stock Levels")
         current_stock = st.sidebar.file_uploader("Upload Current Stock Levels (CSV)", type=["csv"])
         
         if current_stock is not None:
@@ -50,23 +56,39 @@ def main():
             
             # Calculate safety stock for each article
             results = []
+            forecasts = []
             for _, row in merged_data.iterrows():
                 article_id = row["Article ID"]
                 historical_sales = row[1:-1]  # Assuming historical sales are in columns 1 to n-1
                 current_stock_level = row["Current Stock"]
                 
+                # Calculate safety stock
                 safety_stock = calculate_safety_stock(historical_sales, lead_time, service_level)
+                
+                # Calculate future forecast using moving average
+                forecast = calculate_moving_average(historical_sales)
+                
                 results.append({
                     "Article ID": article_id,
                     "Safety Stock": safety_stock,
                     "Current Stock": current_stock_level,
                     "Reorder Needed": current_stock_level < safety_stock
                 })
+                
+                forecasts.append({
+                    "Article ID": article_id,
+                    "Forecasted Sales": round(forecast, 1)
+                })
             
-            # Display results
+            # Display safety stock results
             results_df = pd.DataFrame(results)
             st.write("### Safety Stock Calculation Results")
             st.write(results_df)
+            
+            # Display forecast results
+            forecasts_df = pd.DataFrame(forecasts)
+            st.write("### Future Sales Forecast (Moving Average)")
+            st.write(forecasts_df)
             
             # Option to download results
             st.download_button(
