@@ -1,4 +1,2 @@
-streamlit
-joblib
-numpy
-google-generativeai
+matplotlib>=3.0.0
+streamlit>=1.0.0
