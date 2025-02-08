@@ -69,43 +69,49 @@ def main():
                     
                     # Calculate weekly forecast
                     weekly_forecast = [calculate_moving_average(historical_sales[-3:]) for _ in range(8)]
-                    
-                    results.append({
-                        "ArticleID": article_id,
-                        "Safety Stock": safety_stock,
-                        "Current Stock": current_stock_level,
-                        "Reorder Needed": current_stock_level < safety_stock
-                    })
-                    
-                    forecasts.append({
-                        "ArticleID": article_id,
-                        "Forecasted Sales (Next 8 Weeks)": weekly_forecast
-                    })
+                    avg_weekly_forecast = round(np.mean(weekly_forecast), 1)
                     
                     on_order_article = on_order_data[on_order_data["ArticleID"] == article_id]
                     stock_levels = calculate_future_stock(current_stock_level, weekly_forecast, on_order_article)
+                    
+                    # Find the week when stock goes below safety stock
+                    safety_stock_week = next((i for i, x in enumerate(stock_levels) if x < safety_stock), None)
+                    safety_stock_week = safety_stock_week if safety_stock_week is not None else "N/A"
+                    
+                    # Find the week when stock goes to 0
+                    stock_out_week = next((i for i, x in enumerate(stock_levels) if x == 0), None)
+                    stock_out_week = stock_out_week if stock_out_week is not None else "N/A"
+                    
+                    results.append({
+                        "ArticleID": article_id,
+                        "Current Stock": current_stock_level,
+                        "Safety Stock": safety_stock,
+                        "Average Weekly Forecast": avg_weekly_forecast,
+                        "Safety Stock Week": safety_stock_week,
+                        "Stock Out Week": stock_out_week,
+                        "Reorder Needed": current_stock_level < safety_stock
+                    })
+                    
                     stock_projections.append({
                         "ArticleID": article_id,
                         "Stock Levels (Next 8 Weeks)": stock_levels
                     })
             
             results_df = pd.DataFrame(results)
-            forecasts_df = pd.DataFrame(forecasts)
+            
+            # Reorder columns
+            results_df = results_df[["ArticleID", "Current Stock", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
-            st.write(results_df)
-            
-            st.write("### Future Sales Forecast (Moving Average)")
-            st.write(forecasts_df)
+            st.dataframe(results_df.style.applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
             
             st.write("### Stock Projection Over Next 8 Weeks")
             article_ids = sales_data["ArticleID"].unique()
             selected_article = st.selectbox("Select ArticleID to visualize", article_ids)
             
             selected_projection = next((proj for proj in stock_projections if proj["ArticleID"] == selected_article), None)
-            selected_forecast = next((fcst for fcst in forecasts if fcst["ArticleID"] == selected_article), None)
             
-            if selected_projection and selected_forecast:
+            if selected_projection:
                 fig, ax = plt.subplots()
                 ax.plot(range(9), selected_projection["Stock Levels (Next 8 Weeks)"], marker='o', label="Stock Level")
                 ax.axhline(y=results_df[results_df["ArticleID"] == selected_article]["Safety Stock"].values[0], color='r', linestyle='--', label="Safety Stock")
