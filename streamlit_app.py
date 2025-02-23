@@ -45,7 +45,7 @@ def main():
         
         if set(["ArticleID", "Date", "HistoricalSales"]).issubset(sales_data.columns) and \
            set(["ArticleID", "CurrentStock", "LeadTime"]).issubset(stock_data.columns) and \  
-           set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns): # Aggiunta colonna LeadTime
+           set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns): 
             
             sales_data["Date"] = pd.to_datetime(sales_data["Date"])
             on_order_data["Date"] = pd.to_datetime(on_order_data["Date"])
