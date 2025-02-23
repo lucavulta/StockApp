@@ -98,6 +98,7 @@ def main():
                     results.append({
                         "ArticleID": article_id,
                         "Current Stock": round(current_stock_level, 1),
+                        "Lead Time": lead_time,  # Aggiunta della colonna Lead Time
                         "Safety Stock": safety_stock,
                         "Average Weekly Forecast": avg_weekly_forecast,
                         "Safety Stock Week": safety_stock_week,
@@ -115,7 +116,7 @@ def main():
             results_df = pd.DataFrame(results)
             
             # Reorder columns
-            results_df = results_df[["ArticleID", "Current Stock", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Week", "Reorder Quantity", "Reorder Needed"]]
+            results_df = results_df[["ArticleID", "Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Week", "Reorder Quantity", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
             
@@ -127,7 +128,7 @@ def main():
             
             # Applica la formattazione solo alle colonne numeriche
             formatted_df = results_df.copy()
-            for col in ["Current Stock", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
+            for col in ["Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
                 formatted_df[col] = formatted_df[col].apply(format_value)
             
             # Allineamento al centro delle colonne
