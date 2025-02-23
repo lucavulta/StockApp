@@ -85,11 +85,12 @@ def main():
                     
                     # Calculate Reorder Week
                     reorder_week = safety_stock_week - lead_time if safety_stock_week != "N/A" else "N/A"
+                    reorder_week = max(reorder_week, 0) if reorder_week != "N/A" else "N/A"  # Imposta a 0 se negativo
                     
                     # Calculate Reorder Quantity
-                    if reorder_week != "N/A" and reorder_week >= 0:
-                        stock_at_reorder = stock_levels[reorder_week]
-                        reorder_quantity = safety_stock - stock_at_reorder + (avg_weekly_forecast * lead_time)
+                    if safety_stock_week != "N/A":
+                        stock_at_safety_stock_week = stock_levels[safety_stock_week]
+                        reorder_quantity = safety_stock - stock_at_safety_stock_week + (avg_weekly_forecast * lead_time)
                         reorder_quantity = round(reorder_quantity, 1)
                     else:
                         reorder_quantity = "N/A"
@@ -129,7 +130,8 @@ def main():
             for col in ["Current Stock", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
                 formatted_df[col] = formatted_df[col].apply(format_value)
             
-            st.dataframe(formatted_df.style.applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
+            # Allineamento al centro delle colonne
+            st.dataframe(formatted_df.style.applymap(lambda x: 'color: red' if x == "N/A" else 'color: black').set_properties(**{'text-align': 'center'}))
             
             st.write("### Stock Projection Over Next 8 Weeks")
             article_ids = sales_data["ArticleID"].unique()
