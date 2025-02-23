@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import mplcursors  # Per aggiungere i pop-up al grafico
 
 # Function to calculate safety stock
 def calculate_safety_stock(demand_series, lead_time, service_level):
@@ -30,8 +31,7 @@ def main():
     st.title("Safety Stock Calculator")
     
     st.sidebar.header("Parameters")
-    lead_time = st.sidebar.number_input("Lead Time (in weeks)", min_value=1, value=1)  # Changed to weeks
-    service_level = st.sidebar.selectbox("Service Level", [90, 95, 99], index=1)
+    service_level = st.sidebar.slider("Service Level", min_value=90, max_value=99, value=95, step=1)  # Slider per il service level
     
     st.sidebar.header("Upload Data")
     uploaded_sales = st.sidebar.file_uploader("Upload Historical Sales Data (CSV)", type=["csv"])
@@ -44,7 +44,7 @@ def main():
         on_order_data = pd.read_csv(uploaded_on_order)
         
         if set(["ArticleID", "Date", "HistoricalSales"]).issubset(sales_data.columns) and \
-           set(["ArticleID", "CurrentStock"]).issubset(stock_data.columns) and \
+           set(["ArticleID", "CurrentStock", "LeadTime"]).issubset(stock_data.columns) and \  # Aggiunta colonna LeadTime
            set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns):
             
             sales_data["Date"] = pd.to_datetime(sales_data["Date"])
@@ -64,6 +64,7 @@ def main():
                 stock_row = stock_data[stock_data["ArticleID"] == article_id]
                 if not stock_row.empty:
                     current_stock_level = stock_row.iloc[0]["CurrentStock"]
+                    lead_time = stock_row.iloc[0]["LeadTime"]  # Legge il lead time dal file CurrentStock
                     
                     safety_stock = calculate_safety_stock(historical_sales, lead_time, service_level)
                     
@@ -119,6 +120,16 @@ def main():
                 ax.set_ylabel("Stock Level")
                 ax.set_title(f"Stock Projection for ArticleID {selected_article}")
                 ax.legend()
+
+                # Aggiungi i pop-up con mplcursors
+                cursor = mplcursors.cursor(ax, hover=True)
+                @cursor.connect("add")
+                def on_add(sel):
+                    week = sel.target[0]
+                    stock_level = sel.target[1]
+                    safety_stock = results_df[results_df["ArticleID"] == selected_article]["Safety Stock"].values[0]
+                    sel.annotation.set_text(f"Week: {week}\nStock Level: {stock_level}\nSafety Stock: {safety_stock}")
+                
                 st.pyplot(fig)
             
             st.download_button(
