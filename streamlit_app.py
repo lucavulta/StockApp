@@ -30,7 +30,7 @@ def main():
     st.title("Safety Stock Calculator")
     
     st.sidebar.header("Parameters")
-    lead_time = st.sidebar.number_input("Lead Time (in days)", min_value=1, value=7)
+    lead_time = st.sidebar.number_input("Lead Time (in weeks)", min_value=1, value=1)  # Changed to weeks
     service_level = st.sidebar.selectbox("Service Level", [90, 95, 99], index=1)
     
     st.sidebar.header("Upload Data")
