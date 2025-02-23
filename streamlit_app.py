@@ -117,12 +117,19 @@ def main():
             results_df = results_df[["ArticleID", "Current Stock", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Week", "Reorder Quantity", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
-            st.dataframe(results_df.style.format({
-                "Current Stock": "{:.1f}",
-                "Safety Stock": "{:.1f}",
-                "Average Weekly Forecast": "{:.1f}",
-                "Reorder Quantity": "{:.1f}"
-            }).applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
+            
+            # Formattazione condizionale per i valori numerici
+            def format_value(x):
+                if isinstance(x, (int, float)) and x != "N/A":
+                    return f"{x:.1f}"
+                return x
+            
+            # Applica la formattazione solo alle colonne numeriche
+            formatted_df = results_df.copy()
+            for col in ["Current Stock", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
+                formatted_df[col] = formatted_df[col].apply(format_value)
+            
+            st.dataframe(formatted_df.style.applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
             
             st.write("### Stock Projection Over Next 8 Weeks")
             article_ids = sales_data["ArticleID"].unique()
