@@ -44,8 +44,8 @@ def main():
         on_order_data = pd.read_csv(uploaded_on_order)
         
         if set(["ArticleID", "Date", "HistoricalSales"]).issubset(sales_data.columns) and \
-   set(["ArticleID", "CurrentStock", "LeadTime"]).issubset(stock_data.columns) and \
-   set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns):  # Aggiunta colonna LeadTime
+           set(["ArticleID", "CurrentStock", "LeadTime"]).issubset(stock_data.columns) and \
+           set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns):  # Aggiunta colonna LeadTime
             
             sales_data["Date"] = pd.to_datetime(sales_data["Date"])
             on_order_data["Date"] = pd.to_datetime(on_order_data["Date"])
@@ -83,13 +83,26 @@ def main():
                     stock_out_week = next((i for i, x in enumerate(stock_levels) if x == 0), None)
                     stock_out_week = stock_out_week if stock_out_week is not None else "N/A"
                     
+                    # Calculate Reorder Week
+                    reorder_week = safety_stock_week - lead_time if safety_stock_week != "N/A" else "N/A"
+                    
+                    # Calculate Reorder Quantity
+                    if reorder_week != "N/A" and reorder_week >= 0:
+                        stock_at_reorder = stock_levels[reorder_week]
+                        reorder_quantity = safety_stock - stock_at_reorder + (avg_weekly_forecast * lead_time)
+                        reorder_quantity = round(reorder_quantity, 1)
+                    else:
+                        reorder_quantity = "N/A"
+                    
                     results.append({
                         "ArticleID": article_id,
-                        "Current Stock": current_stock_level,
+                        "Current Stock": round(current_stock_level, 1),
                         "Safety Stock": safety_stock,
                         "Average Weekly Forecast": avg_weekly_forecast,
                         "Safety Stock Week": safety_stock_week,
                         "Stock Out Week": stock_out_week,
+                        "Reorder Week": reorder_week,
+                        "Reorder Quantity": reorder_quantity,
                         "Reorder Needed": current_stock_level < safety_stock
                     })
                     
@@ -101,10 +114,15 @@ def main():
             results_df = pd.DataFrame(results)
             
             # Reorder columns
-            results_df = results_df[["ArticleID", "Current Stock", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Needed"]]
+            results_df = results_df[["ArticleID", "Current Stock", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Week", "Reorder Quantity", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
-            st.dataframe(results_df.style.applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
+            st.dataframe(results_df.style.format({
+                "Current Stock": "{:.1f}",
+                "Safety Stock": "{:.1f}",
+                "Average Weekly Forecast": "{:.1f}",
+                "Reorder Quantity": "{:.1f}"
+            }).applymap(lambda x: 'color: red' if x == "N/A" else 'color: black'))
             
             st.write("### Stock Projection Over Next 8 Weeks")
             article_ids = sales_data["ArticleID"].unique()
