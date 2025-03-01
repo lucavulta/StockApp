@@ -7,7 +7,7 @@ import mplcursors  # Per aggiungere i pop-up al grafico
 # Function to calculate safety stock
 def calculate_safety_stock(demand_series, lead_time, service_level):
     demand_std = np.std(demand_series)
-    z_score = {90: 1.28, 95: 1.65, 99: 2.33}.get(service_level, 1.65)
+    z_score = {90: 1.28, 91: 1.34, 92: 1.41, 93: 1.48, 94: 1.55, 95: 1.65, 96: 1.75, 97: 1.88, 98: 2.05, 99: 2.33}.get(service_level, 1.65)
     safety_stock = z_score * demand_std * np.sqrt(lead_time)
     return round(safety_stock, 1)
 
@@ -25,6 +25,24 @@ def calculate_future_stock(current_stock, forecast, on_order_data):
             stock += on_order_data[on_order_data["Week"] == week]["OnOrder"].sum()
         stock_levels.append(max(stock, 0))  # Ensure stock doesn't go negative
     return stock_levels
+
+# Function to generate export data
+def generate_export_data(results_df, stock_projections):
+    export_data = []
+    for proj in stock_projections:
+        article_id = proj["ArticleID"]
+        stock_levels = proj["Stock Levels (Next 8 Weeks)"]
+        safety_stock = results_df[results_df["ArticleID"] == article_id]["Safety Stock"].values[0]
+        reorder_quantity = results_df[results_df["ArticleID"] == article_id]["Reorder Quantity"].values[0]
+        for week, stock in enumerate(stock_levels):
+            export_data.append({
+                "Article": article_id,
+                "Week": week,
+                "Expected Stock": stock,
+                "SafetyStock": safety_stock,
+                "ReorderQuantity": reorder_quantity if week == 0 else 0  # ReorderQuantity only for week 0
+            })
+    return pd.DataFrame(export_data)
 
 # Streamlit app
 def main():
@@ -90,7 +108,8 @@ def main():
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
                         stock_at_safety_stock_week = stock_levels[safety_stock_week]
-                        reorder_quantity = safety_stock - stock_at_safety_stock_week + (avg_weekly_forecast * lead_time)
+                        on_order_at_lead_time = on_order_article[on_order_article["Week"] == lead_time]["OnOrder"].sum()
+                        reorder_quantity = (avg_weekly_forecast * lead_time) + safety_stock - stock_at_safety_stock_week - on_order_at_lead_time
                         reorder_quantity = round(reorder_quantity, 1)
                     else:
                         reorder_quantity = "N/A"
@@ -160,10 +179,20 @@ def main():
                 
                 st.pyplot(fig)
             
+            # Generate export data
+            export_df = generate_export_data(results_df, stock_projections)
+            
             st.download_button(
                 label="Download Results as CSV",
                 data=results_df.to_csv(index=False).encode('utf-8'),
                 file_name="safety_stock_results.csv",
+                mime="text/csv"
+            )
+            
+            st.download_button(
+                label="Download Export Data as CSV",
+                data=export_df.to_csv(index=False).encode('utf-8'),
+                file_name="export_data.csv",
                 mime="text/csv"
             )
         else:
