@@ -34,13 +34,20 @@ def generate_export_data(results_df, stock_projections):
         stock_levels = proj["Stock Levels (Next 8 Weeks)"]
         safety_stock = results_df[results_df["ArticleID"] == article_id]["Safety Stock"].values[0]
         reorder_quantity = results_df[results_df["ArticleID"] == article_id]["Reorder Quantity"].values[0]
+        
+        # Gestione del caso in cui reorder_quantity è "N/A"
+        if reorder_quantity == "N/A":
+            reorder_quantity_rounded = "N/A"
+        else:
+            reorder_quantity_rounded = round(reorder_quantity, 1)  # Arrotondamento a una cifra decimale
+        
         for week, stock in enumerate(stock_levels):
             export_data.append({
                 "Article": article_id,
                 "Week": week,
                 "Expected Stock": round(stock, 1),  # Arrotondamento a una cifra decimale
                 "SafetyStock": round(safety_stock, 1),  # Arrotondamento a una cifra decimale
-                "ReorderQuantity": round(reorder_quantity, 1) if week == 0 else 0  # ReorderQuantity solo per la settimana 0
+                "ReorderQuantity": reorder_quantity_rounded if week == 0 else 0  # ReorderQuantity solo per la settimana 0
             })
     return pd.DataFrame(export_data)
 
