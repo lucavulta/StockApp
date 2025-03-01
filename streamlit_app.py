@@ -109,8 +109,7 @@ def main():
                     stock_out_week = stock_out_week if stock_out_week is not None else "N/A"
                     
                     # Calculate Reorder Week
-                    reorder_week = safety_stock_week - lead_time if safety_stock_week != "N/A" else "N/A"
-                    reorder_week = max(reorder_week, 0) if reorder_week != "N/A" else "N/A"  # Imposta a 0 se negativo
+                    reorder_week = 0 + lead_time  # Reorder Week = 0 + LeadTime
                     
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
@@ -129,20 +128,20 @@ def main():
                         "Average Weekly Forecast": avg_weekly_forecast,
                         "Safety Stock Week": safety_stock_week,
                         "Stock Out Week": stock_out_week,
-                        "Reorder Week": reorder_week,
                         "Reorder Quantity": reorder_quantity,
                         "Reorder Needed": current_stock_level < safety_stock
                     })
                     
                     stock_projections.append({
                         "ArticleID": article_id,
-                        "Stock Levels (Next 8 Weeks)": stock_levels
+                        "Stock Levels (Next 8 Weeks)": stock_levels,
+                        "Reorder Week": reorder_week  # Aggiunta della Reorder Week per il grafico
                     })
             
             results_df = pd.DataFrame(results)
             
-            # Reorder columns
-            results_df = results_df[["ArticleID", "Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Week", "Reorder Quantity", "Reorder Needed"]]
+            # Reorder columns (rimuovere Reorder Week)
+            results_df = results_df[["ArticleID", "Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Quantity", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
             
@@ -170,6 +169,11 @@ def main():
                 fig, ax = plt.subplots()
                 ax.plot(range(9), selected_projection["Stock Levels (Next 8 Weeks)"], marker='o', label="Stock Level")
                 ax.axhline(y=results_df[results_df["ArticleID"] == selected_article]["Safety Stock"].values[0], color='r', linestyle='--', label="Safety Stock")
+                
+                # Aggiungi la linea verticale tratteggiata per la Reorder Week
+                reorder_week = selected_projection["Reorder Week"]
+                ax.axvline(x=reorder_week, color='g', linestyle='--', label=f"Reorder Week ({reorder_week})")
+                
                 ax.set_xlabel("Weeks")
                 ax.set_ylabel("Stock Level")
                 ax.set_title(f"Stock Projection for ArticleID {selected_article}")
