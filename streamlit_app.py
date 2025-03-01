@@ -38,9 +38,9 @@ def generate_export_data(results_df, stock_projections):
             export_data.append({
                 "Article": article_id,
                 "Week": week,
-                "Expected Stock": stock,
-                "SafetyStock": safety_stock,
-                "ReorderQuantity": reorder_quantity if week == 0 else 0  # ReorderQuantity only for week 0
+                "Expected Stock": round(stock, 1),  # Arrotondamento a una cifra decimale
+                "SafetyStock": round(safety_stock, 1),  # Arrotondamento a una cifra decimale
+                "ReorderQuantity": round(reorder_quantity, 1) if week == 0 else 0  # ReorderQuantity solo per la settimana 0
             })
     return pd.DataFrame(export_data)
 
@@ -95,7 +95,7 @@ def main():
                     
                     # Find the week when stock goes below safety stock
                     safety_stock_week = next((i for i, x in enumerate(stock_levels) if x < safety_stock), None)
-                    safety_stock_week = safety_stock_week if safety_stock_week is not None else "N/A"
+                    safety_stock_week = safety_stock_week - 1 if safety_stock_week is not None and safety_stock_week > 0 else "N/A"
                     
                     # Find the week when stock goes to 0
                     stock_out_week = next((i for i, x in enumerate(stock_levels) if x == 0), None)
@@ -107,9 +107,9 @@ def main():
                     
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
-                        stock_at_safety_stock_week = stock_levels[safety_stock_week]
+                        stock_at_lead_time = stock_levels[lead_time]
                         on_order_at_lead_time = on_order_article[on_order_article["Week"] == lead_time]["OnOrder"].sum()
-                        reorder_quantity = (avg_weekly_forecast * lead_time) + safety_stock - stock_at_safety_stock_week - on_order_at_lead_time
+                        reorder_quantity = (avg_weekly_forecast * lead_time) + safety_stock - stock_at_lead_time - on_order_at_lead_time
                         reorder_quantity = round(reorder_quantity, 1)
                     else:
                         reorder_quantity = "N/A"
