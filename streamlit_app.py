@@ -114,9 +114,8 @@ def main():
                     
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
-                        stock_at_lead_time = stock_levels[reorder_lead_time]
-                        on_order_at_lead_time = on_order_article[on_order_article["Week"] == reorder_lead_time]["OnOrder"].sum()
-                        reorder_quantity = (avg_weekly_forecast * reorder_lead_time) + safety_stock - stock_at_lead_time - on_order_at_lead_time
+                        stock_at_lead_time = stock_levels[lead_time]  # Expected Stock nella settimana (0 + LeadTime)
+                        reorder_quantity = (avg_weekly_forecast * reorder_lead_time) + safety_stock - stock_at_lead_time
                         reorder_quantity = round(reorder_quantity, 1)
                     else:
                         reorder_quantity = "N/A"
