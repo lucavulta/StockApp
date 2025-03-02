@@ -102,15 +102,24 @@ def main():
                     stock_levels = calculate_future_stock(current_stock_level, weekly_forecast, on_order_article)
                     
                     # Find the week when stock goes below safety stock
-                    safety_stock_week = next((i for i, x in enumerate(stock_levels) if x < safety_stock), None)
-                    safety_stock_week = safety_stock_week - 1 if safety_stock_week is not None and safety_stock_week > 0 else "N/A"
+                    safety_stock_week = None
+                    if stock_levels[0] < safety_stock:
+                        # Trova la prima settimana in cui lo stock torna sopra il Safety Stock
+                        for week, stock in enumerate(stock_levels):
+                            if stock > safety_stock:
+                                safety_stock_week = week
+                                break
+                        if safety_stock_week is None:
+                            safety_stock_week = "N/A"  # Se lo stock non torna mai sopra il Safety Stock
+                    else:
+                        safety_stock_week = "N/A"  # Se lo stock è già sopra il Safety Stock nella settimana 0
                     
                     # Find the week when stock goes to 0
                     stock_out_week = next((i for i, x in enumerate(stock_levels) if x == 0), None)
                     stock_out_week = stock_out_week if stock_out_week is not None else "N/A"
                     
                     # Calculate Reorder Week
-                    reorder_week = 0 + reorder_lead_time  # Reorder Week = 0 + Reorder LeadTime
+                    reorder_week = 0 + lead_time  # Reorder Week = 0 + LeadTime
                     
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
