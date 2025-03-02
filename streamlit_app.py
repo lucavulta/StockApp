@@ -69,8 +69,8 @@ def main():
         on_order_data = pd.read_csv(uploaded_on_order)
         
         if set(["ArticleID", "Date", "HistoricalSales"]).issubset(sales_data.columns) and \
-           set(["ArticleID", "CurrentStock", "LeadTime"]).issubset(stock_data.columns) and \
-           set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns):  # Aggiunta colonna LeadTime
+           set(["ArticleID", "CurrentStock", "LeadTime", "Reorder LeadTime"]).issubset(stock_data.columns) and \
+           set(["ArticleID", "Date", "OnOrder"]).issubset(on_order_data.columns):  # Aggiunta colonna Reorder LeadTime
             
             sales_data["Date"] = pd.to_datetime(sales_data["Date"])
             on_order_data["Date"] = pd.to_datetime(on_order_data["Date"])
@@ -90,6 +90,7 @@ def main():
                 if not stock_row.empty:
                     current_stock_level = stock_row.iloc[0]["CurrentStock"]
                     lead_time = stock_row.iloc[0]["LeadTime"]  # Legge il lead time dal file CurrentStock
+                    reorder_lead_time = stock_row.iloc[0]["Reorder LeadTime"]  # Legge il Reorder LeadTime dal file CurrentStock
                     
                     safety_stock = calculate_safety_stock(historical_sales, lead_time, service_level)
                     
@@ -109,13 +110,13 @@ def main():
                     stock_out_week = stock_out_week if stock_out_week is not None else "N/A"
                     
                     # Calculate Reorder Week
-                    reorder_week = 0 + lead_time  # Reorder Week = 0 + LeadTime
+                    reorder_week = 0 + reorder_lead_time  # Reorder Week = 0 + Reorder LeadTime
                     
                     # Calculate Reorder Quantity
                     if safety_stock_week != "N/A":
-                        stock_at_lead_time = stock_levels[lead_time]
-                        on_order_at_lead_time = on_order_article[on_order_article["Week"] == lead_time]["OnOrder"].sum()
-                        reorder_quantity = (avg_weekly_forecast * lead_time) + safety_stock - stock_at_lead_time - on_order_at_lead_time
+                        stock_at_lead_time = stock_levels[reorder_lead_time]
+                        on_order_at_lead_time = on_order_article[on_order_article["Week"] == reorder_lead_time]["OnOrder"].sum()
+                        reorder_quantity = (avg_weekly_forecast * reorder_lead_time) + safety_stock - stock_at_lead_time - on_order_at_lead_time
                         reorder_quantity = round(reorder_quantity, 1)
                     else:
                         reorder_quantity = "N/A"
@@ -124,6 +125,7 @@ def main():
                         "ArticleID": article_id,
                         "Current Stock": round(current_stock_level, 1),
                         "Lead Time": lead_time,  # Aggiunta della colonna Lead Time
+                        "Reorder LeadTime": reorder_lead_time,  # Aggiunta della colonna Reorder LeadTime
                         "Safety Stock": safety_stock,
                         "Average Weekly Forecast": avg_weekly_forecast,
                         "Safety Stock Week": safety_stock_week,
@@ -141,7 +143,7 @@ def main():
             results_df = pd.DataFrame(results)
             
             # Reorder columns (rimuovere Reorder Week)
-            results_df = results_df[["ArticleID", "Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Quantity", "Reorder Needed"]]
+            results_df = results_df[["ArticleID", "Current Stock", "Lead Time", "Reorder LeadTime", "Safety Stock", "Average Weekly Forecast", "Safety Stock Week", "Stock Out Week", "Reorder Quantity", "Reorder Needed"]]
             
             st.write("### Safety Stock Calculation Results")
             
@@ -153,7 +155,7 @@ def main():
             
             # Applica la formattazione solo alle colonne numeriche
             formatted_df = results_df.copy()
-            for col in ["Current Stock", "Lead Time", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
+            for col in ["Current Stock", "Lead Time", "Reorder LeadTime", "Safety Stock", "Average Weekly Forecast", "Reorder Quantity"]:
                 formatted_df[col] = formatted_df[col].apply(format_value)
             
             # Allineamento al centro delle colonne
